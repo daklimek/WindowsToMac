@@ -49,4 +49,47 @@ struct KeyCode {
     static let LetterB = 11
     static let LetterN = 45
     static let LetterM = 46
+    
+    static let LeftArrow = 123
+    static let DownArrow = 125
+    static let UpArrow = 126
+    static let RightArrow = 124
 }
+
+let letters:[Int] = [
+    KeyCode.LetterQ,
+    KeyCode.LetterW,
+    KeyCode.LetterE,
+    KeyCode.LetterR,
+    KeyCode.LetterT,
+    KeyCode.LetterY,
+    KeyCode.LetterU,
+    KeyCode.LetterI,
+    KeyCode.LetterO,
+    KeyCode.LetterP,
+    
+    KeyCode.LetterA,
+    KeyCode.LetterS,
+    KeyCode.LetterD,
+    KeyCode.LetterF,
+    KeyCode.LetterG,
+    KeyCode.LetterH,
+    KeyCode.LetterJ,
+    KeyCode.LetterK,
+    KeyCode.LetterL,
+    
+    KeyCode.LetterZ,
+    KeyCode.LetterX,
+    KeyCode.LetterC,
+    KeyCode.LetterV,
+    KeyCode.LetterB,
+    KeyCode.LetterN,
+    KeyCode.LetterM
+]
+
+let arrows:[Int] = [
+    KeyCode.LeftArrow,
+    KeyCode.DownArrow,
+    KeyCode.UpArrow,
+    KeyCode.RightArrow
+]

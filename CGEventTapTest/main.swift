@@ -19,19 +19,19 @@ struct KeyboardCommand {
         
         var result = UInt64(0)
         
-        if pressedKeys.contains(Int64(KeyCode.Shift)) {
+        if self.pressedKeys.contains(Int64(KeyCode.Shift)) {
             result |= CGEventFlags.maskShift.rawValue
         }
         
-        if pressedKeys.contains(Int64(KeyCode.Control)) {
+        if self.pressedKeys.contains(Int64(KeyCode.Control)) {
             result |= CGEventFlags.maskControl.rawValue
         }
         
-        if pressedKeys.contains(Int64(KeyCode.Windows)) {
+        if self.pressedKeys.contains(Int64(KeyCode.Windows)) {
             result |= CGEventFlags.maskCommand.rawValue
         }
         
-        if pressedKeys.contains(Int64(KeyCode.Alt)) {
+        if self.pressedKeys.contains(Int64(KeyCode.Alt)) {
             result |= CGEventFlags.maskAlternate.rawValue
         }
         
@@ -55,19 +55,43 @@ struct KeyboardShortcutDefinition {
 var pressedKeys: Set<Int64> = []
 
 var shortcuts: [KeyboardShortcutDefinition] = [
-    
-    KeyboardShortcutDefinition(
-        fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.LetterC), pressedKeys:[Int64(KeyCode.Control)]),
-        toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.LetterC), pressedKeys:[Int64(KeyCode.Windows)]),
-        applications: []
-    ),
-    
     KeyboardShortcutDefinition(
         fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.LetterX), pressedKeys:[Int64(KeyCode.Control)]),
         toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.LetterC), pressedKeys:[Int64(KeyCode.Control)]),
         applications: ["Terminal"]
     )
 ]
+
+
+// Control + <Letter> -> WindowsKey + <Letter>
+for letter in letters {
+    shortcuts.append(
+        KeyboardShortcutDefinition(
+            fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(letter), pressedKeys:[Int64(KeyCode.Control)]),
+            toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(letter), pressedKeys:[Int64(KeyCode.Windows)]),
+            applications: []
+    ))
+}
+
+// Control + Shift + <Arrow> -> Alt + Shift + <Arrow>
+for arrow in arrows {
+    shortcuts.append(
+        KeyboardShortcutDefinition(
+            fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Control), Int64(KeyCode.Shift)]),
+            toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Alt), Int64(KeyCode.Shift)]),
+            applications: []
+    ))
+}
+
+// Control + <Arrow> -> Alt + <Arrow>
+for arrow in arrows {
+    shortcuts.append(
+        KeyboardShortcutDefinition(
+            fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Control)]),
+            toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Alt)]),
+            applications: []
+    ))
+}
 
 func getActiveApplicationName() -> String {
     let ws = NSWorkspace.shared
@@ -89,18 +113,72 @@ func getActiveApplicationName() -> String {
 
 let EventSourceUserData = Int64(82411444529)
 
+func getFlagsSet(event: CGEvent) -> [String] {
+    var flags = [String]()
+    
+    if event.flags.rawValue & CGEventFlags.maskShift.rawValue != 0 {
+        flags.append("Shift")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
+        flags.append("Windows")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskControl.rawValue != 0 {
+        flags.append("Control")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
+        flags.append("Alt")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskHelp.rawValue != 0 {
+        flags.append("Help")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskAlphaShift.rawValue != 0 {
+        flags.append("AlphaShift")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskNumericPad.rawValue != 0 {
+        flags.append("NumericPad")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskNonCoalesced.rawValue != 0 {
+        flags.append("NonCoalesced")
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskSecondaryFn.rawValue != 0 {
+        flags.append("SecondaryFn")
+    }
+    
+    return flags
+}
+
 func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
     
     var ret = Unmanaged.passRetained(event) as Unmanaged<CGEvent>?
     
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
     let eventSourceUserData = event.getIntegerValueField(.eventSourceUserData)
+    let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat)
     
-    if EventSourceUserData == eventSourceUserData {
+    
+    
+    
+    if type == .keyDown {
+        let spacing = EventSourceUserData == eventSourceUserData ? "\t->" : ""
+        print("\(spacing)keyCode:\(keyCode) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event)) isRepeat:\(isRepeat)")
+    }
+    
+    
+    if EventSourceUserData == eventSourceUserData && isRepeat == 0 {
         return ret
     }
     
-    print("keyCode:\(keyCode) pressed:\(type == .keyDown) proxy:\(proxy) eventSourceUserData:\(eventSourceUserData)")
+    // Needed for repeat keys where the primary key has already been pressed.
+    var cleanedPressedKeys = Set<Int64>(pressedKeys)
+    cleanedPressedKeys.remove(keyCode)
     
     
     for shortcut in shortcuts {
@@ -112,7 +190,7 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
             continue
         }
         
-        if !pressedKeys.elementsEqual(shortcut.fromKey.pressedKeys) {
+        if cleanedPressedKeys != shortcut.fromKey.pressedKeys {
             continue
         }
         
@@ -128,7 +206,6 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
         cmdd?.flags = shortcut.toKey.getFlagsFromPressedKeys()
         cmdd?.post(tap: CGEventTapLocation.cghidEventTap)
         ret = nil
-        print("REMAPPP")
         
         break
     }
