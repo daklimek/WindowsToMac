@@ -91,8 +91,6 @@ let EventSourceUserData = Int64(82411444529)
 
 func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
     
-   /* print("flags: \(event.flags)")
-    print("event.getIntegerValueField(.keyboardEventKeycode): \(event.getIntegerValueField(.keyboardEventKeycode))")*/
     var ret = Unmanaged.passRetained(event) as Unmanaged<CGEvent>?
     
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
@@ -103,14 +101,6 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     }
     
     print("keyCode:\(keyCode) pressed:\(type == .keyDown) proxy:\(proxy) eventSourceUserData:\(eventSourceUserData)")
-    
-   // let controlKeys: Set<Int64> = [Int64(KeyCode.Control)]
-   /* print("type == .keyDown: \(type == .keyDown)")
-    print("pressedKeys.elementsEqual(controlKeys): \(pressedKeys.elementsEqual(controlKeys))")
-    print("pressedKeys: \(pressedKeys)")
-    print("controlKeys: \(controlKeys)")
-    print("keyCode == Keycode.LetterC: \(keyCode == KeyCode.LetterC)")
-    print("")*/
     
     
     for shortcut in shortcuts {
@@ -140,24 +130,8 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
         ret = nil
         print("REMAPPP")
         
-      /*  let ws = NSWorkspace.shared
-        let apps = ws.runningApplications
-        for currentApp in apps
-        {
-            if (currentApp.activationPolicy == .regular){
-                print("application:\(currentApp.localizedName!) currentApp.ownsMenuBar:\(currentApp.ownsMenuBar)")
-            }
-        }*/
         break
     }
-    
-    /*if type == .keyDown && pressedKeys.elementsEqual(controlKeys) && keyCode == KeyCode.LetterC {
-        let src = CGEventSource(stateID: CGEventSourceStateID.hidSystemState)
-        let cmdd = CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(KeyCode.LetterC), keyDown: true)
-        cmdd?.flags = CGEventFlags.maskCommand
-        cmdd?.post(tap: CGEventTapLocation.cghidEventTap)
-        ret = nil
-    }*/
     
     if type == .keyDown {
         pressedKeys.insert(keyCode)
@@ -193,29 +167,6 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
         }
     }
     
-   /* print("pressedKeys (end): \(pressedKeys)")
-    print("type: \(type)")*/
-    
-    // 61
-   /* if [.keyDown , .keyUp].contains(type) {
-        var keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        if keyCode == 12 {
-            keyCode = 13
-            return nil
-        } else if keyCode == 13 {
-            keyCode = 12
-            
-            let src = CGEventSource(stateID: CGEventSourceStateID.hidSystemState)
-
-            let cmdd = CGEvent(keyboardEventSource: src, virtualKey: 14, keyDown: true)
-            cmdd?.post(tap: CGEventTapLocation.cghidEventTap)
-            
-            return nil
-
-        }
-        event.setIntegerValueField(.keyboardEventKeycode, value: keyCode)
-        
-    }*/
     return ret
 }
 
