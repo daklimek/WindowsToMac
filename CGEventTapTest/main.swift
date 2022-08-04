@@ -44,11 +44,13 @@ struct KeyboardShortcutDefinition {
     var fromKey: KeyboardCommand
     var toKey: KeyboardCommand
     var applications: Set<String>
+    var name: String?
     
-    init(fromKey: KeyboardCommand, toKey: KeyboardCommand, applications: Set<String>) {
+    init(fromKey: KeyboardCommand, toKey: KeyboardCommand, applications: Set<String>, name: String? = nil) {
         self.fromKey = fromKey
         self.toKey = toKey
         self.applications = applications
+        self.name = name
     }
 }
 
@@ -93,9 +95,29 @@ for arrow in arrows {
     ))
 }
 
+// Control + Back -> Windows + Back
+shortcuts.append(
+    KeyboardShortcutDefinition(
+        fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Backspace), pressedKeys:[Int64(KeyCode.Control)]),
+        toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Backspace), pressedKeys:[Int64(KeyCode.Alt)]),
+        applications: []
+))
+
+
+// Control + Delete -> Windows + Delete
+shortcuts.append(
+    KeyboardShortcutDefinition(
+        fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Delete), pressedKeys:[Int64(KeyCode.Control)]),
+        toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Delete), pressedKeys:[Int64(KeyCode.Alt)]),
+        applications: []
+))
+
+
+
 func getActiveApplicationName() -> String {
     let ws = NSWorkspace.shared
     let apps = ws.runningApplications
+    NSWindow.
     for currentApp in apps {
         if currentApp.activationPolicy != .regular {
             continue
@@ -104,6 +126,7 @@ func getActiveApplicationName() -> String {
         if !currentApp.ownsMenuBar {
             continue
         }
+        
         
         return currentApp.localizedName!
     }
@@ -165,11 +188,11 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     
     
     
-    
-    if type == .keyDown {
-        let spacing = EventSourceUserData == eventSourceUserData ? "\t->" : ""
-        print("\(spacing)keyCode:\(keyCode) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event)) isRepeat:\(isRepeat)")
+    let spacing = EventSourceUserData == eventSourceUserData ? "\t->" : ""
+    if isRepeat == 0 {
+        print("\(spacing)keyDown:\(type == .keyDown) keyCode:\(keyCode) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event)) isRepeat:\(isRepeat)")
     }
+    
     
     
     if EventSourceUserData == eventSourceUserData && isRepeat == 0 {

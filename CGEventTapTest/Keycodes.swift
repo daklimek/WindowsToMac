@@ -1,7 +1,7 @@
 struct KeyCode {
     static let Control = 59
-    static let Windows = 55
-    static let Alt = 58
+    static let Windows = 61
+    static let Alt = 54
     static let Shift = 56
     static let CapsLock = 57
     static let Tab = 48
