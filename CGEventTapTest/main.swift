@@ -117,7 +117,6 @@ shortcuts.append(
 func getActiveApplicationName() -> String {
     let ws = NSWorkspace.shared
     let apps = ws.runningApplications
-    NSWindow.
     for currentApp in apps {
         if currentApp.activationPolicy != .regular {
             continue
@@ -126,7 +125,6 @@ func getActiveApplicationName() -> String {
         if !currentApp.ownsMenuBar {
             continue
         }
-        
         
         return currentApp.localizedName!
     }
@@ -178,6 +176,24 @@ func getFlagsSet(event: CGEvent) -> [String] {
     return flags
 }
 
+func swapModifierKeys(event: CGEvent) {
+    var newFlags = event.flags
+    
+    if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
+        newFlags = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue | newFlags.rawValue)
+    } else {
+        newFlags = CGEventFlags(rawValue: ~CGEventFlags.maskCommand.rawValue & newFlags.rawValue)
+    }
+    
+    if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
+        newFlags = CGEventFlags(rawValue: CGEventFlags.maskAlternate.rawValue | newFlags.rawValue)
+    } else {
+        newFlags = CGEventFlags(rawValue: ~CGEventFlags.maskAlternate.rawValue & newFlags.rawValue)
+    }
+    
+    event.flags = newFlags
+}
+
 func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refcon: UnsafeMutableRawPointer?) -> Unmanaged<CGEvent>? {
     
     var ret = Unmanaged.passRetained(event) as Unmanaged<CGEvent>?
@@ -198,6 +214,9 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     if EventSourceUserData == eventSourceUserData && isRepeat == 0 {
         return ret
     }
+    
+    
+    swapModifierKeys(event: event)
     
     // Needed for repeat keys where the primary key has already been pressed.
     var cleanedPressedKeys = Set<Int64>(pressedKeys)
