@@ -1,62 +1,89 @@
-struct KeyCode {
-    static let Control = 59
-    static let Windows = 61
-    static let Alt = 54
-    static let Shift = 56
-    static let CapsLock = 57
-    static let Tab = 48
-    static let Space = 49
-    static let Delete = 117
-    static let Backspace = 51
-    static let Tilda = 50
+enum KeyCode : Int64, Decodable, CaseIterable {
+    case Control = 59
+    case Windows = 55
+    case Alt = 58
+    case Shift = 56
+    case CapsLock = 57
+    case Tab = 48
+    case Space = 49
+    case Delete = 117
+    case Backspace = 51
+    case Tilda = 50
     
-    static let Num1 = 18
-    static let Num2 = 19
-    static let Num3 = 20
-    static let Num4 = 21
-    static let Num5 = 23
-    static let Num6 = 22
-    static let Num7 = 26
-    static let Num8 = 28
-    static let Num9 = 25
-    static let Num0 = 29
+    case Num1 = 18
+    case Num2 = 19
+    case Num3 = 20
+    case Num4 = 21
+    case Num5 = 23
+    case Num6 = 22
+    case Num7 = 26
+    case Num8 = 28
+    case Num9 = 25
+    case Num0 = 29
 
-    static let LetterQ = 12
-    static let LetterW = 13
-    static let LetterE = 14
-    static let LetterR = 15
-    static let LetterT = 17
-    static let LetterY = 16
-    static let LetterU = 32
-    static let LetterI = 34
-    static let LetterO = 31
-    static let LetterP = 35
+    case LetterQ = 12
+    case LetterW = 13
+    case LetterE = 14
+    case LetterR = 15
+    case LetterT = 17
+    case LetterY = 16
+    case LetterU = 32
+    case LetterI = 34
+    case LetterO = 31
+    case LetterP = 35
     
-    static let LetterA = 0
-    static let LetterS = 1
-    static let LetterD = 2
-    static let LetterF = 3
-    static let LetterG = 5
-    static let LetterH = 4
-    static let LetterJ = 38
-    static let LetterK = 40
-    static let LetterL = 37
+    case LetterA = 0
+    case LetterS = 1
+    case LetterD = 2
+    case LetterF = 3
+    case LetterG = 5
+    case LetterH = 4
+    case LetterJ = 38
+    case LetterK = 40
+    case LetterL = 37
     
-    static let LetterZ = 6
-    static let LetterX = 7
-    static let LetterC = 8
-    static let LetterV = 9
-    static let LetterB = 11
-    static let LetterN = 45
-    static let LetterM = 46
+    case LetterZ = 6
+    case LetterX = 7
+    case LetterC = 8
+    case LetterV = 9
+    case LetterB = 11
+    case LetterN = 45
+    case LetterM = 46
     
-    static let LeftArrow = 123
-    static let DownArrow = 125
-    static let UpArrow = 126
-    static let RightArrow = 124
+    case LeftArrow = 123
+    case DownArrow = 125
+    case UpArrow = 126
+    case RightArrow = 124
+    
+    
+    case Unknown = -1
+    
+    static var map = [String: KeyCode]()
+    static func initMap() {
+        
+        if !map.isEmpty {
+            return
+        }
+        
+        for keyCode in KeyCode.allCases {
+            map.updateValue(keyCode, forKey: "\(keyCode)")
+        }
+    }
+    
+    static func createFrom(rawValue: String) -> KeyCode {
+        initMap()
+        return map[rawValue, default: KeyCode.Unknown]
+    }
+    
+    
+    init(from decoder: Decoder) throws {
+        let label = try decoder.singleValueContainer().decode(String.self)
+        
+        self = KeyCode.createFrom(rawValue: label)
+    }
 }
 
-let letters:[Int] = [
+let letters:[KeyCode] = [
     KeyCode.LetterQ,
     KeyCode.LetterW,
     KeyCode.LetterE,
@@ -87,7 +114,7 @@ let letters:[Int] = [
     KeyCode.LetterM
 ]
 
-let arrows:[Int] = [
+let arrows:[KeyCode] = [
     KeyCode.LeftArrow,
     KeyCode.DownArrow,
     KeyCode.UpArrow,

@@ -1,17 +1,39 @@
 import Foundation
 import Cocoa
 
-struct KeyboardCommand {
+struct KeyboardCommand : Decodable {
     // Set this to true to trigger the shortcut when the key is pressed. It should be set to false
     // when the shortcut should be triggered on release.
     var keyPressed: Bool
-    var keyCode: Int64
-    var pressedKeys: Set<Int64>
+    var keyCode: KeyCode
+    var pressedKeys: Set<KeyCode>
     
-    init(keyPressed: Bool, keyCode: Int64, pressedKeys: Set<Int64>) {
+    init(keyPressed: Bool, keyCode: KeyCode, pressedKeys: Set<KeyCode>) {
         self.keyPressed = keyPressed
         self.keyCode = keyCode
         self.pressedKeys = pressedKeys
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case keyPressed, keyCode, pressedKeys
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        if let keyPressed = try container.decodeIfPresent(Bool.self, forKey: .keyPressed) {
+            self.keyPressed = keyPressed
+        } else {
+            self.keyPressed = true
+        }
+        
+        self.keyCode = try container.decode(KeyCode.self, forKey: .keyCode)
+        
+        if let pressedKeys = try container.decodeIfPresent(Set<KeyCode>.self, forKey: .pressedKeys) {
+            self.pressedKeys = pressedKeys
+        } else {
+            self.pressedKeys = []
+        }
     }
     
     func getFlagsFromPressedKeys() -> CGEventFlags {
@@ -19,28 +41,29 @@ struct KeyboardCommand {
         
         var result = UInt64(0)
         
-        if self.pressedKeys.contains(Int64(KeyCode.Shift)) {
+        if self.pressedKeys.contains(KeyCode.Shift) {
             result |= CGEventFlags.maskShift.rawValue
         }
         
-        if self.pressedKeys.contains(Int64(KeyCode.Control)) {
+        if self.pressedKeys.contains(KeyCode.Control) {
             result |= CGEventFlags.maskControl.rawValue
         }
         
-        if self.pressedKeys.contains(Int64(KeyCode.Windows)) {
+        if self.pressedKeys.contains(KeyCode.Windows) {
             result |= CGEventFlags.maskCommand.rawValue
         }
         
-        if self.pressedKeys.contains(Int64(KeyCode.Alt)) {
+        if self.pressedKeys.contains(KeyCode.Alt) {
             result |= CGEventFlags.maskAlternate.rawValue
         }
         
+        result |= CGEventFlags.maskNonCoalesced.rawValue
         
         return CGEventFlags(rawValue: result)
     }
 }
 
-struct KeyboardShortcutDefinition {
+struct KeyboardShortcutDefinition : Decodable {
     var fromKey: KeyboardCommand
     var toKey: KeyboardCommand
     var applications: Set<String>
@@ -52,67 +75,62 @@ struct KeyboardShortcutDefinition {
         self.applications = applications
         self.name = name
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case fromKey, toKey, applications, name, value
+    }
+    
+    static func createKeyboardCommand(value: String) -> KeyboardCommand {
+        let split = value.components(separatedBy: "+")
+        
+        var pressedKeys = Set<KeyCode>()
+        for pressedKey in split.dropLast() {
+            pressedKeys.insert(KeyCode.createFrom(rawValue: pressedKey))
+        }
+        
+        return KeyboardCommand(keyPressed: true,
+                               keyCode: KeyCode.createFrom(rawValue: split.last!),
+                               pressedKeys: pressedKeys)
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let value = try container.decodeIfPresent(String.self, forKey: .value) {
+            let valueSplit = value.components(separatedBy: "->")
+            self.fromKey = KeyboardShortcutDefinition.createKeyboardCommand(value: valueSplit[0])
+            self.toKey = KeyboardShortcutDefinition.createKeyboardCommand(value: valueSplit[1])
+            
+        } else {
+            self.fromKey = try container.decode(KeyboardCommand.self, forKey: .fromKey)
+            self.toKey = try container.decode(KeyboardCommand.self, forKey: .toKey)
+        }
+        
+        if let applications = try container.decodeIfPresent(Set<String>.self, forKey: .applications) {
+            self.applications = applications
+        } else {
+            self.applications = []
+        }
+        
+        if let name = try container.decodeIfPresent(String.self, forKey: .name) {
+            self.name = name
+        } else {
+            self.name = nil
+        }
+    }
 }
 
-var pressedKeys: Set<Int64> = []
-
-var shortcuts: [KeyboardShortcutDefinition] = [
-    KeyboardShortcutDefinition(
-        fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.LetterX), pressedKeys:[Int64(KeyCode.Control)]),
-        toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.LetterC), pressedKeys:[Int64(KeyCode.Control)]),
-        applications: ["Terminal"]
-    )
-]
-
-
-// Control + <Letter> -> WindowsKey + <Letter>
-for letter in letters {
-    shortcuts.append(
-        KeyboardShortcutDefinition(
-            fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(letter), pressedKeys:[Int64(KeyCode.Control)]),
-            toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(letter), pressedKeys:[Int64(KeyCode.Windows)]),
-            applications: []
-    ))
+struct KeyboardConfigurationGroup : Decodable {
+    let shortcuts: [KeyboardShortcutDefinition]
+    let name: String
 }
 
-// Control + Shift + <Arrow> -> Alt + Shift + <Arrow>
-for arrow in arrows {
-    shortcuts.append(
-        KeyboardShortcutDefinition(
-            fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Control), Int64(KeyCode.Shift)]),
-            toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Alt), Int64(KeyCode.Shift)]),
-            applications: []
-    ))
+struct KeyboardConfiguration : Decodable {
+    let groups: [KeyboardConfigurationGroup]
 }
 
-// Control + <Arrow> -> Alt + <Arrow>
-for arrow in arrows {
-    shortcuts.append(
-        KeyboardShortcutDefinition(
-            fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Control)]),
-            toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(arrow), pressedKeys:[Int64(KeyCode.Alt)]),
-            applications: []
-    ))
-}
+var pressedKeys: Set<KeyCode> = []
 
-// Control + Back -> Windows + Back
-shortcuts.append(
-    KeyboardShortcutDefinition(
-        fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Backspace), pressedKeys:[Int64(KeyCode.Control)]),
-        toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Backspace), pressedKeys:[Int64(KeyCode.Alt)]),
-        applications: []
-))
-
-
-// Control + Delete -> Windows + Delete
-shortcuts.append(
-    KeyboardShortcutDefinition(
-        fromKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Delete), pressedKeys:[Int64(KeyCode.Control)]),
-        toKey: KeyboardCommand(keyPressed: true, keyCode: Int64(KeyCode.Delete), pressedKeys:[Int64(KeyCode.Alt)]),
-        applications: []
-))
-
-
+var shortcuts: [KeyboardShortcutDefinition] = []
 
 func getActiveApplicationName() -> String {
     let ws = NSWorkspace.shared
@@ -141,7 +159,7 @@ func getFlagsSet(event: CGEvent) -> [String] {
         flags.append("Shift")
     }
     
-    if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
+    if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
         flags.append("Windows")
     }
     
@@ -149,7 +167,7 @@ func getFlagsSet(event: CGEvent) -> [String] {
         flags.append("Control")
     }
     
-    if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
+    if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
         flags.append("Alt")
     }
     
@@ -198,28 +216,39 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     
     var ret = Unmanaged.passRetained(event) as Unmanaged<CGEvent>?
     
-    let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+    let keyCodeOptional = KeyCode(rawValue: event.getIntegerValueField(.keyboardEventKeycode))
     let eventSourceUserData = event.getIntegerValueField(.eventSourceUserData)
     let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat)
     
     
-    
-    let spacing = EventSourceUserData == eventSourceUserData ? "\t->" : ""
-    if isRepeat == 0 {
-        print("\(spacing)keyDown:\(type == .keyDown) keyCode:\(keyCode) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event)) isRepeat:\(isRepeat)")
+    if EventSourceUserData != eventSourceUserData {
+        print("swap")
+        swapModifierKeys(event: event)
     }
     
-    
-    
     if EventSourceUserData == eventSourceUserData && isRepeat == 0 {
+        print("Out: keyDown:\(type == .keyDown) keyCode:\(keyCodeOptional ?? KeyCode.Unknown) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event))")
         return ret
     }
     
+    if keyCodeOptional == nil {
+        print("unknown key:\(event.getIntegerValueField(.keyboardEventKeycode))")
+        return ret
+    }
     
-    swapModifierKeys(event: event)
+    let keyCode = keyCodeOptional!
+    
+    let spacing = EventSourceUserData == eventSourceUserData ? "\t->" : ""
+    if isRepeat == 0 {
+        print("\(spacing)keyDown:\(type == .keyDown) keyCode:\(keyCodeOptional ?? KeyCode.Unknown) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event))")
+    }
+    
+    
+    
+    
     
     // Needed for repeat keys where the primary key has already been pressed.
-    var cleanedPressedKeys = Set<Int64>(pressedKeys)
+    var cleanedPressedKeys = Set<KeyCode>(pressedKeys)
     cleanedPressedKeys.remove(keyCode)
     
     
@@ -244,10 +273,12 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
         
         let src = CGEventSource(stateID: CGEventSourceStateID.hidSystemState)
         src?.userData = EventSourceUserData
-        let cmdd = CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(shortcut.toKey.keyCode), keyDown: shortcut.toKey.keyPressed)
+        let cmdd = CGEvent(keyboardEventSource: src, virtualKey: CGKeyCode(shortcut.toKey.keyCode.rawValue), keyDown: shortcut.toKey.keyPressed)
         cmdd?.flags = shortcut.toKey.getFlagsFromPressedKeys()
         cmdd?.post(tap: CGEventTapLocation.cghidEventTap)
         ret = nil
+        
+        print("name:\(shortcut.name ?? "")")
         
         break
     }
@@ -262,32 +293,137 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     
     if type == .flagsChanged {
         if event.flags.rawValue & CGEventFlags.maskShift.rawValue != 0 {
-            pressedKeys.insert(Int64(KeyCode.Shift))
+            pressedKeys.insert(KeyCode.Shift)
         } else {
-            pressedKeys.remove(Int64(KeyCode.Shift))
+            pressedKeys.remove(KeyCode.Shift)
         }
         
         if event.flags.rawValue & CGEventFlags.maskControl.rawValue != 0 {
-            pressedKeys.insert(Int64(KeyCode.Control))
+            pressedKeys.insert(KeyCode.Control)
         } else {
-            pressedKeys.remove(Int64(KeyCode.Control))
+            pressedKeys.remove(KeyCode.Control)
         }
         
         if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
-            pressedKeys.insert(Int64(KeyCode.Alt))
+            pressedKeys.insert(KeyCode.Alt)
         } else {
-            pressedKeys.remove(Int64(KeyCode.Alt))
+            pressedKeys.remove(KeyCode.Alt)
         }
         
         if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
-            pressedKeys.insert(Int64(KeyCode.Windows))
+            pressedKeys.insert(KeyCode.Windows)
         } else {
-            pressedKeys.remove(Int64(KeyCode.Windows))
+            pressedKeys.remove(KeyCode.Windows)
         }
     }
     
     return ret
 }
+
+func loadHotKeysFromFile(fileName: String) throws -> KeyboardConfiguration? {
+    
+
+    // Set the file path
+    let path = fileName
+
+
+    // Get the contents
+    let contents = try String(contentsOfFile: path, encoding: .utf8)
+    print(contents)
+    
+    
+    let jsonData = contents.data(using: .utf8)!
+
+    let decodeResult = try JSONDecoder().decode(KeyboardConfiguration.self, from: jsonData)
+    
+    return decodeResult
+
+}
+
+func loadHotKeyMaps() {
+    var newShortcuts: [KeyboardShortcutDefinition] = [
+        KeyboardShortcutDefinition(
+            fromKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.LetterX, pressedKeys:[KeyCode.Control]),
+            toKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.LetterC, pressedKeys:[KeyCode.Control]),
+            applications: ["Terminal"]
+        )
+    ]
+    
+    // Control + <Letter> -> WindowsKey + <Letter>
+    for letter in letters {
+        newShortcuts.append(
+            KeyboardShortcutDefinition(
+                fromKey: KeyboardCommand(keyPressed: true, keyCode: letter, pressedKeys:[KeyCode.Control]),
+                toKey: KeyboardCommand(keyPressed: true, keyCode: letter, pressedKeys:[KeyCode.Windows]),
+                applications: []
+        ))
+    }
+
+    // Control + Shift + <Arrow> -> Alt + Shift + <Arrow>
+    for arrow in arrows {
+        newShortcuts.append(
+            KeyboardShortcutDefinition(
+                fromKey: KeyboardCommand(keyPressed: true, keyCode: arrow, pressedKeys:[KeyCode.Control, KeyCode.Shift]),
+                toKey: KeyboardCommand(keyPressed: true, keyCode: arrow, pressedKeys:[KeyCode.Alt, KeyCode.Shift]),
+                applications: []
+        ))
+    }
+
+    // Control + <Arrow> -> Alt + <Arrow>
+    for arrow in arrows {
+        newShortcuts.append(
+            KeyboardShortcutDefinition(
+                fromKey: KeyboardCommand(keyPressed: true, keyCode: arrow, pressedKeys:[KeyCode.Control]),
+                toKey: KeyboardCommand(keyPressed: true, keyCode: arrow, pressedKeys:[KeyCode.Alt]),
+                applications: []
+        ))
+    }
+    
+    do {
+        
+        // Get the directory contents urls (including subfolders urls)
+        let directoryContents = try FileManager.default.contentsOfDirectory(
+            atPath: "."
+        )
+        
+        print("directoryContents:\(directoryContents)")
+        
+        for file in directoryContents {
+            if !file.hasSuffix(".keyconfig.json") {
+                continue
+            }
+            
+            print("reading key config file: \(file)")
+            
+            let fileConfig = try loadHotKeysFromFile(fileName: file)
+            
+            if fileConfig == nil {
+                print("null file config")
+                continue
+            }
+            
+            
+            
+            var addedCount = 0
+            for group in fileConfig!.groups {
+                for shortcut in group.shortcuts {
+                    newShortcuts.append(shortcut)
+                    print(shortcut)
+                    addedCount += 1
+                }
+            }
+            
+            
+            print("added \(addedCount) shortcuts from file \(file)")
+        }
+    } catch {
+        print("Error in loadHotKeyMaps:\(error)")
+    }
+    
+    shortcuts = newShortcuts
+}
+
+
 
 let eventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
 | (1 << CGEventType.flagsChanged.rawValue)// | (1 << CGEventType.scrollWheel.rawValue)
@@ -301,6 +437,8 @@ guard let eventTap = CGEvent.tapCreate(
     print("failed to create event tap")
     exit(1)
 }
+
+loadHotKeyMaps()
 
 let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
