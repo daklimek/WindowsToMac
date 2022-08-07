@@ -1,7 +1,7 @@
 enum KeyCode : Int64, Decodable, CaseIterable {
     case Control = 59
-    case Windows = 55
-    case Alt = 58
+    case Windows = 61
+    case Alt = 54
     case Shift = 56
     case CapsLock = 57
     case Tab = 48

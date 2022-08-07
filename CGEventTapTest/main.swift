@@ -223,7 +223,7 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     
     if EventSourceUserData != eventSourceUserData {
         print("swap")
-        swapModifierKeys(event: event)
+        //swapModifierKeys(event: event)
     }
     
     if EventSourceUserData == eventSourceUserData && isRepeat == 0 {
@@ -233,6 +233,7 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     
     if keyCodeOptional == nil {
         print("unknown key:\(event.getIntegerValueField(.keyboardEventKeycode))")
+        print("")
         return ret
     }
     
@@ -304,19 +305,23 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
             pressedKeys.remove(KeyCode.Control)
         }
         
-        if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
+        if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
             pressedKeys.insert(KeyCode.Alt)
         } else {
             pressedKeys.remove(KeyCode.Alt)
         }
         
-        if event.flags.rawValue & CGEventFlags.maskCommand.rawValue != 0 {
+        if event.flags.rawValue & CGEventFlags.maskAlternate.rawValue != 0 {
             pressedKeys.insert(KeyCode.Windows)
         } else {
             pressedKeys.remove(KeyCode.Windows)
         }
     }
     
+    print("pressedKeys:\(pressedKeys)")
+    if ret != nil {
+        print("")
+    }
     return ret
 }
 
