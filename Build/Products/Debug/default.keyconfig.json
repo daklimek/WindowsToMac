@@ -1,0 +1,25 @@
+{
+    "groups": [
+        {
+            "name": "Test Group",
+            "shortcuts": [
+                {
+                    "name": "Delete word in front of cursor",
+                    "value": "Control+Delete->Alt+Delete"
+                },
+                {
+                    "name": "Delete word behind cursor",
+                    "value": "Control+Backspace->Alt+Backspace"
+                },
+                {
+                    "name": "Redo action",
+                    "value": "Control+Shift+Z->Shift+Windows+Z"
+                },
+                {
+                    "name": "Lock screen",
+                    "value": "Windows+L->Control+Windows+Q"
+                }
+            ]
+        }
+    ]
+}

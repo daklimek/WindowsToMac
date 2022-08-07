@@ -348,8 +348,8 @@ func loadHotKeysFromFile(fileName: String) throws -> KeyboardConfiguration? {
 func loadHotKeyMaps() {
     var newShortcuts: [KeyboardShortcutDefinition] = [
         KeyboardShortcutDefinition(
-            fromKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.LetterX, pressedKeys:[KeyCode.Control]),
-            toKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.LetterC, pressedKeys:[KeyCode.Control]),
+            fromKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.X, pressedKeys:[KeyCode.Control]),
+            toKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.C, pressedKeys:[KeyCode.Control]),
             applications: ["Terminal"]
         )
     ]

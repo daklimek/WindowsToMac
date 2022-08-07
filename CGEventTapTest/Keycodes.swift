@@ -21,34 +21,34 @@ enum KeyCode : Int64, Decodable, CaseIterable {
     case Num9 = 25
     case Num0 = 29
 
-    case LetterQ = 12
-    case LetterW = 13
-    case LetterE = 14
-    case LetterR = 15
-    case LetterT = 17
-    case LetterY = 16
-    case LetterU = 32
-    case LetterI = 34
-    case LetterO = 31
-    case LetterP = 35
+    case Q = 12
+    case W = 13
+    case E = 14
+    case R = 15
+    case T = 17
+    case Y = 16
+    case U = 32
+    case I = 34
+    case O = 31
+    case P = 35
     
-    case LetterA = 0
-    case LetterS = 1
-    case LetterD = 2
-    case LetterF = 3
-    case LetterG = 5
-    case LetterH = 4
-    case LetterJ = 38
-    case LetterK = 40
-    case LetterL = 37
+    case A = 0
+    case S = 1
+    case D = 2
+    case F = 3
+    case G = 5
+    case H = 4
+    case J = 38
+    case K = 40
+    case L = 37
     
-    case LetterZ = 6
-    case LetterX = 7
-    case LetterC = 8
-    case LetterV = 9
-    case LetterB = 11
-    case LetterN = 45
-    case LetterM = 46
+    case Z = 6
+    case X = 7
+    case C = 8
+    case V = 9
+    case B = 11
+    case N = 45
+    case M = 46
     
     case LeftArrow = 123
     case DownArrow = 125
@@ -84,34 +84,34 @@ enum KeyCode : Int64, Decodable, CaseIterable {
 }
 
 let letters:[KeyCode] = [
-    KeyCode.LetterQ,
-    KeyCode.LetterW,
-    KeyCode.LetterE,
-    KeyCode.LetterR,
-    KeyCode.LetterT,
-    KeyCode.LetterY,
-    KeyCode.LetterU,
-    KeyCode.LetterI,
-    KeyCode.LetterO,
-    KeyCode.LetterP,
+    KeyCode.Q,
+    KeyCode.W,
+    KeyCode.E,
+    KeyCode.R,
+    KeyCode.T,
+    KeyCode.Y,
+    KeyCode.U,
+    KeyCode.I,
+    KeyCode.O,
+    KeyCode.P,
     
-    KeyCode.LetterA,
-    KeyCode.LetterS,
-    KeyCode.LetterD,
-    KeyCode.LetterF,
-    KeyCode.LetterG,
-    KeyCode.LetterH,
-    KeyCode.LetterJ,
-    KeyCode.LetterK,
-    KeyCode.LetterL,
+    KeyCode.A,
+    KeyCode.S,
+    KeyCode.D,
+    KeyCode.F,
+    KeyCode.G,
+    KeyCode.H,
+    KeyCode.J,
+    KeyCode.K,
+    KeyCode.L,
     
-    KeyCode.LetterZ,
-    KeyCode.LetterX,
-    KeyCode.LetterC,
-    KeyCode.LetterV,
-    KeyCode.LetterB,
-    KeyCode.LetterN,
-    KeyCode.LetterM
+    KeyCode.Z,
+    KeyCode.X,
+    KeyCode.C,
+    KeyCode.V,
+    KeyCode.B,
+    KeyCode.N,
+    KeyCode.M
 ]
 
 let arrows:[KeyCode] = [
