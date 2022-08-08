@@ -132,6 +132,21 @@ var pressedKeys: Set<KeyCode> = []
 
 var shortcuts: [KeyboardShortcutDefinition] = []
 
+func getApplicationsNames() -> [String] {
+    var result: [String] = []
+    let ws = NSWorkspace.shared
+    let apps = ws.runningApplications
+    for currentApp in apps {
+        if currentApp.activationPolicy != .regular {
+            continue
+        }
+        
+        result.append(currentApp.localizedName ?? "Unknown")
+    }
+    
+    return result
+}
+
 func getActiveApplicationName() -> String {
     let ws = NSWorkspace.shared
     let apps = ws.runningApplications
@@ -220,11 +235,6 @@ func myCGEventCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent
     let eventSourceUserData = event.getIntegerValueField(.eventSourceUserData)
     let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat)
     
-    
-    if EventSourceUserData != eventSourceUserData {
-        print("swap")
-        //swapModifierKeys(event: event)
-    }
     
     if EventSourceUserData == eventSourceUserData && isRepeat == 0 {
         print("Out: keyDown:\(type == .keyDown) keyCode:\(keyCodeOptional ?? KeyCode.Unknown) pressed:\(type == .keyDown) flags:\(getFlagsSet(event: event))")
@@ -346,6 +356,7 @@ func loadHotKeysFromFile(fileName: String) throws -> KeyboardConfiguration? {
 }
 
 func loadHotKeyMaps() {
+    print("applicationNames:\(getApplicationsNames().joined(separator: ","))")
     var newShortcuts: [KeyboardShortcutDefinition] = [
         KeyboardShortcutDefinition(
             fromKey: KeyboardCommand(keyPressed: true, keyCode: KeyCode.X, pressedKeys:[KeyCode.Control]),
@@ -353,16 +364,6 @@ func loadHotKeyMaps() {
             applications: ["Terminal"]
         )
     ]
-    
-    // Control + <Letter> -> WindowsKey + <Letter>
-    for letter in letters {
-        newShortcuts.append(
-            KeyboardShortcutDefinition(
-                fromKey: KeyboardCommand(keyPressed: true, keyCode: letter, pressedKeys:[KeyCode.Control]),
-                toKey: KeyboardCommand(keyPressed: true, keyCode: letter, pressedKeys:[KeyCode.Windows]),
-                applications: []
-        ))
-    }
 
     // Control + Shift + <Arrow> -> Alt + Shift + <Arrow>
     for arrow in arrows {
@@ -425,6 +426,18 @@ func loadHotKeyMaps() {
         print("Error in loadHotKeyMaps:\(error)")
     }
     
+    
+    
+    // Control + <Letter> -> WindowsKey + <Letter>
+    for letter in letters {
+        newShortcuts.append(
+            KeyboardShortcutDefinition(
+                fromKey: KeyboardCommand(keyPressed: true, keyCode: letter, pressedKeys:[KeyCode.Control]),
+                toKey: KeyboardCommand(keyPressed: true, keyCode: letter, pressedKeys:[KeyCode.Windows]),
+                applications: []
+        ))
+    }
+    
     shortcuts = newShortcuts
 }
 
@@ -445,7 +458,94 @@ guard let eventTap = CGEvent.tapCreate(
 
 loadHotKeyMaps()
 
+class FileSystemObjectObserver {
+    private let fileDescriptor: CInt
+    private let source: DispatchSourceProtocol
+    private let path: String
+
+    init(path: String, handler: (()->Void)?) {
+        self.fileDescriptor = open(path, O_EVTONLY)
+        self.source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: self.fileDescriptor, eventMask: .all, queue: DispatchQueue.global())
+        self.source.setEventHandler {
+            print("FILE CHANGED:\(path)")
+            if handler != nil {
+                handler!()
+            }
+        }
+        self.source.resume()
+        self.path = path
+    }
+    
+    func setHandler(handler: (()->Void)?) {
+        self.source.setEventHandler {
+            print("FILE CHANGED:\(self.path)")
+            if handler != nil {
+                handler!()
+            }
+        }
+    }
+    
+    deinit {
+        self.source.cancel()
+        close(fileDescriptor)
+    }
+}
+
+class DirectoryContentsObserver {
+    private var files = [String: FileSystemObjectObserver]()
+    private let directory: FileSystemObjectObserver
+    private let handler: () -> Void
+
+    init(path: String, handler: @escaping ()->Void) {
+        self.handler = handler
+        self.directory = FileSystemObjectObserver(path: path, handler: nil)
+        self.directory.setHandler(handler: self.directoryChangedHandler)
+        directoryChangedHandler()
+    }
+    
+    private func directoryChangedHandler() {
+        print("DIRCTORY CHANGED")
+        do {
+            let currentFiles = Set<String>(try FileManager.default.contentsOfDirectory(atPath: "."))
+            print("currentFiles:\(currentFiles)")
+            
+            // Remove files that are no longer there.
+            for file in self.files {
+                if !currentFiles.contains(file.key) {
+                    print("REMOVING WATCHED FILE:\(file.key)")
+                    self.files.removeValue(forKey: file.key)
+                }
+            }
+            
+            // Add the ones that are.
+            for file in currentFiles {
+                if self.files[file] != nil {
+                    continue
+                }
+                
+                if !file.hasSuffix(".keyconfig.json") {
+                    continue
+                }
+                
+                print("WATCHING NEW FILE:\(file)")
+                let observer = FileSystemObjectObserver(path: file, handler: {
+                    self.handler()
+                })
+                self.files.updateValue(observer, forKey: file)
+            }
+        } catch {
+            print("Error in directory change event:\(error)")
+        }
+        
+        self.handler()
+    }
+}
+
+var observer = DirectoryContentsObserver(path: ".", handler: loadHotKeyMaps)
+
+
 let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: eventTap, enable: true)
 CFRunLoopRun()
+

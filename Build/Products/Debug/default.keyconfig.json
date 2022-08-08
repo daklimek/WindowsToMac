@@ -20,6 +20,16 @@
                     "value": "Windows+L->Control+Windows+Q"
                 }
             ]
+        },
+        {
+            "name": "Chrome",
+            "shortcuts": [
+                {
+                    "name": "View history in chrome",
+                    "value": "Control+H->Windows+Y",
+                    "applications": ["Google Chrome"]
+                }
+            ]
         }
     ]
 }
