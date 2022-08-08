@@ -28,6 +28,11 @@
                     "name": "View history in chrome",
                     "value": "Control+H->Windows+Y",
                     "applications": ["Google Chrome"]
+                },
+                {
+                    "name": "View downloads in chrome",
+                    "value": "Control+J->Shift+Windows+J",
+                    "applications": ["Google Chrome"]
                 }
             ]
         }
