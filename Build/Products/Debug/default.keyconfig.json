@@ -35,6 +35,21 @@
                     "applications": ["Google Chrome"]
                 }
             ]
+        },
+        {
+            "name": "Code",
+            "shortcuts": [
+                {
+                    "name": "Comment out line",
+                    "value": "Control+K+C->Windows+K+C",
+                    "applications": ["Code"]
+                },
+                {
+                    "name": "Comment out line",
+                    "value": "Control+K+U->Windows+K+U",
+                    "applications": ["Code"]
+                }
+            ]
         }
     ]
 }
